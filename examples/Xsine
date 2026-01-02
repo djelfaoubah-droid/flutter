@@ -1,0 +1,3016 @@
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:provider/provider.dart';
+
+void main() => runApp(const MyApp());
+
+const Color primaryColor = Colors.blue;
+
+/// The main application.
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        fontFamily: 'Cairo',
+        primaryColor: primaryColor,
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        inputDecorationTheme: const InputDecorationTheme(
+          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+          hintStyle: TextStyle(fontFamily: 'Cairo'),
+          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        ),
+      ),
+      home: const SplashScreen(),
+    );
+  }
+}
+
+/// Splash Screen
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2));
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+
+    _controller.addStatusListener((AnimationStatus status) {
+      if (status == AnimationStatus.completed) {
+        Future<void>.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const AccountTypeSelectionScreen()),
+            );
+          }
+        });
+      }
+    });
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: primaryColor,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(Icons.shopping_cart, size: 80, color: Colors.white),
+            const SizedBox(height: 20),
+            FadeTransition(
+              opacity: _animation,
+              child: const Text(
+                'Xsine',
+                style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Button for selecting account type.
+class AccountTypeButton extends StatelessWidget {
+  final String label;
+  final String accountType;
+
+  const AccountTypeButton({
+    required this.label,
+    required this.accountType,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primaryColor,
+        minimumSize: const Size(200, 50),
+      ),
+      onPressed: () {
+        if (accountType == 'normal') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute<void>(
+              builder: (BuildContext routeContext) => ChangeNotifierProvider<NormalUserData>(
+                create: (BuildContext providerContext) => NormalUserData(),
+                builder: (BuildContext providerContext, Widget? child) => HomeScreen(accountType: accountType),
+              ),
+            ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute<void>(builder: (_) => HomeScreen(accountType: accountType)),
+          );
+        }
+      },
+      child: Text(label, style: const TextStyle(fontSize: 18)),
+    );
+  }
+}
+
+/// Account type selection screen.
+class AccountTypeSelectionScreen extends StatelessWidget {
+  const AccountTypeSelectionScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+              child: Text(
+                'يرجى إختيار نوع الحساب المناسب لك للمتابعة',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  // ignore: deprecated_member_use
+                  color: primaryColor.withOpacity(0.8),
+                ),
+              ),
+            ),
+            AccountTypeButton(label: 'حساب عادي', accountType: 'normal'),
+            const SizedBox(height: 20),
+            AccountTypeButton(label: 'حساب المحل', accountType: 'store'),
+            const SizedBox(height: 20),
+            AccountTypeButton(label: 'حساب التوصيل', accountType: 'delivery'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The Normal User Data Model
+class NormalUserData extends ChangeNotifier {
+  String _username;
+  String _email;
+  String _profileImageUrl;
+  final List<String> _followedStoreIds;
+  final List<String> _notifications;
+
+  static const Map<String, Map<String, String>> _mockStores = <String, Map<String, String>>{
+    'store_1': {'name': 'متجر الأحلام', 'image': 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg'},
+    'store_2': {'name': 'المركز التجاري الكبير', 'image': 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg'},
+    'store_3': {'name': 'متجر الإلكترونيات', 'image': 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg'},
+    'store_4': {'name': 'ملابس الموضة', 'image': 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg'},
+    'store_5': {'name': 'سوبر ماركت الوفاء', 'image': 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg'},
+  };
+
+  NormalUserData()
+      : _username = 'المستخدم العادي',
+        _email = 'user@example.com',
+        _profileImageUrl = 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg',
+        _followedStoreIds = <String>['store_1', 'store_3'],
+        _notifications = <String>[
+          'تخفيض 20% في متجر الإلكترونيات على الهواتف!',
+          'متجر الأحلام أضاف منتجات جديدة في قسم الملابس.',
+          'تذكير: احصل على نقاط مضاعفة اليوم!',
+        ];
+
+  String get username => _username;
+  String get email => _email;
+  String get profileImageUrl => _profileImageUrl;
+  List<String> get followedStoreIds => List<String>.unmodifiable(_followedStoreIds);
+  List<String> get notifications => List<String>.unmodifiable(_notifications);
+
+  void updateProfile({required String newUsername, required String newEmail}) {
+    if (_username != newUsername || _email != newEmail) {
+      _username = newUsername;
+      _email = newEmail;
+      notifyListeners();
+    }
+  }
+
+  void updateProfileImage(String newUrl) {
+    if (_profileImageUrl != newUrl) {
+      _profileImageUrl = newUrl;
+      notifyListeners();
+    }
+  }
+
+  void followStore(String storeId) {
+    if (!_followedStoreIds.contains(storeId)) {
+      _followedStoreIds.add(storeId);
+      notifyListeners();
+      addNotification('أنت الآن تتابع ${getStoreNameById(storeId)}!');
+    }
+  }
+
+  void unfollowStore(String storeId) {
+    if (_followedStoreIds.remove(storeId)) {
+      notifyListeners();
+      addNotification('لقد ألغيت متابعة ${getStoreNameById(storeId)}.');
+    }
+  }
+
+  void addNotification(String message) {
+    _notifications.insert(0, message);
+    notifyListeners();
+  }
+
+  void clearNotifications() {
+    _notifications.clear();
+    notifyListeners();
+  }
+
+  String getStoreNameById(String storeId) {
+    return _mockStores[storeId]?['name'] ?? 'محل غير معروف';
+  }
+
+  String getStoreImageById(String storeId) {
+    return _mockStores[storeId]?['image'] ?? 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg';
+  }
+
+  List<String> getAllAvailableStores() {
+    return _mockStores.keys.toList();
+  }
+}
+
+/// App bar for the Home Screen.
+class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final TextEditingController searchController;
+
+  const HomeAppBar({
+    required this.searchController,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      backgroundColor: primaryColor,
+      title: Row(
+        children: <Widget>[
+          const Text('Xsine', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              textAlign: TextAlign.right,
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'ابحث عن',
+                hintStyle: const TextStyle(color: Colors.white70),
+                prefixIcon: const Icon(Icons.search, color: Colors.white),
+                filled: true,
+                // ignore: deprecated_member_use
+                fillColor: Colors.white.withOpacity(0.3),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}
+
+/// Button for general actions in dialogs.
+class AppButton extends StatelessWidget {
+  final String text;
+  final Color color;
+  final VoidCallback onPressed;
+  final Size? minimumSize;
+
+  const AppButton({
+    required this.text,
+    required this.color,
+    required this.onPressed,
+    this.minimumSize,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        minimumSize: minimumSize,
+      ),
+      onPressed: onPressed,
+      child: Text(text),
+    );
+  }
+}
+
+/// Action button for the home screen.
+class HomeActionButton extends StatelessWidget {
+  final String text;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+
+  const HomeActionButton({
+    required this.text,
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          minimumSize: const Size(250, 40),
+          elevation: 2,
+        ),
+        onPressed: onPressed,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 20),
+            const SizedBox(width: 4),
+            Text(text, style: const TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Narrow action button for the home screen.
+class HomeNarrowButton extends StatelessWidget {
+  final String text;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+
+  const HomeNarrowButton({
+    required this.text,
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          minimumSize: const Size(119, 40),
+          elevation: 2,
+        ),
+        onPressed: onPressed,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 20),
+            const SizedBox(width: 4),
+            Text(text, style: const TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Body content for the Home Screen.
+class HomeBody extends StatelessWidget {
+  final VoidCallback onEarnMoneyPressed;
+  final VoidCallback onSmartShoppingPressed;
+  final VoidCallback onFavoritesPressed;
+  final VoidCallback onDiscountsPressed;
+
+  const HomeBody({
+    required this.onEarnMoneyPressed,
+    required this.onSmartShoppingPressed,
+    required this.onFavoritesPressed,
+    required this.onDiscountsPressed,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Text(
+            'اكتشف أفضل العروض\nمنتجات مميزة وبسعر رائع',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor),
+          ),
+          const SizedBox(height: 8),
+          HomeActionButton(
+            text: 'متابعة المحل',
+            icon: Icons.store,
+            color: primaryColor,
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('وظيفة متابعة المحل غير مفعلة حاليًا.')),
+              );
+            },
+          ),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              HomeNarrowButton(
+                text: 'مفضلة',
+                icon: Icons.favorite,
+                color: Colors.red,
+                onPressed: onFavoritesPressed,
+              ),
+              const SizedBox(width: 6),
+              HomeNarrowButton(
+                text: 'تخفيض',
+                icon: Icons.local_offer,
+                color: Colors.green,
+                onPressed: onDiscountsPressed,
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          HomeActionButton(
+            text: 'إضغط للربح المال',
+            icon: Icons.monetization_on,
+            color: Colors.orange,
+            onPressed: onEarnMoneyPressed,
+          ),
+          const SizedBox(height: 5),
+          HomeActionButton(
+            text: 'تسوق بذكاء الإصطناعي',
+            icon: Icons.smart_toy,
+            color: Colors.purple,
+            onPressed: onSmartShoppingPressed,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bottom navigation bar for the Home Screen.
+class HomeBottomNavigationBar extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  const HomeBottomNavigationBar({
+    required this.selectedIndex,
+    required this.onTap,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: primaryColor,
+      unselectedItemColor: Colors.grey,
+      currentIndex: selectedIndex,
+      onTap: onTap,
+      items: const <BottomNavigationBarItem>[
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'الحساب'),
+        BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'الولايات'),
+        BottomNavigationBarItem(icon: Icon(Icons.store), label: 'أقرب محل لك'),
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'الرئيسية'),
+      ],
+    );
+  }
+}
+
+/// Tile option for dialogs.
+class DialogOptionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const DialogOptionTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: primaryColor),
+      title: Text(title),
+      onTap: () async {
+        Navigator.pop(context);
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        onTap();
+      },
+    );
+  }
+}
+
+/// The main home screen.
+class HomeScreen extends StatefulWidget {
+  final String accountType;
+  const HomeScreen({super.key, required this.accountType});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 3;
+  late final TextEditingController _searchController;
+  late List<String> _filteredStates;
+  final TextEditingController _chatController = TextEditingController();
+
+  static const List<String> _states = <String>[
+    'أدرار', 'الشلف', 'الأغواط', 'أم البواقي', 'باتنة', 'بجاية', 'بسكرة', 'بشار', 'البليدة', 'البويرة',
+    'تمنراست', 'تبسة', 'تلمسان', 'تيارت', 'تيزي وزو', 'الجزائر', 'الجلفة', 'جيجل', 'سطيف', 'سعيدة',
+    'سكيكدة', 'سيدي بلعباس', 'عنابة', 'قالمة', 'قسنطينة', 'المدية', 'مستغانم', 'المسيلة', 'معسكر', 'ورقل',
+    'وهران', 'البيض', 'إليزي', 'برج بوعريريج', 'بومرداس', 'الطارف', 'تندوف', 'تيسمسيلت', 'الوادي', 'خنشلة',
+    'سوق أهراس', 'تيبازة', 'ميلة', 'عين الدفلى', 'النعامة', 'عين تموشنت', 'غرداية', 'غليزان', 'تيميمون', 'برج باجي مختار',
+    'أولاد جلال', 'بني عباس', 'عين صالح', 'عين قزام', 'تقرت', 'جانت', 'المغير', 'المنيعة'
+  ];
+
+  static const List<String> _productCategories = <String>[
+    'ملابس وأحذية',
+    'هواتف وإكسسوارات',
+    'مأكولات ومشروبات',
+    'أثاث',
+    'مواد البناء',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _filteredStates = List<String>.from(_states);
+    _searchController.addListener(_filterStates);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _chatController.dispose();
+    super.dispose();
+  }
+
+  void _filterStates() {
+    setState(() {
+      _filteredStates = _states
+          .where((String state) => state.contains(_searchController.text))
+          .toList();
+    });
+  }
+
+  void _onBottomNavTapped(int index) {
+    setState(() => _selectedIndex = index);
+    switch (index) {
+      case 0:
+        _showAccountDialogBasedOnType();
+        break;
+      case 1:
+        _showStatesSheet();
+        break;
+      case 2:
+        _showGpsLocationDialog();
+        break;
+    }
+  }
+
+  void _showAccountDialogBasedOnType() {
+    switch (widget.accountType) {
+      case 'normal':
+        _showNormalAccountDialog();
+        break;
+      case 'store':
+        _showStoreAccountDialog();
+        break;
+      case 'delivery':
+        _showDeliveryAccountDialog();
+        break;
+    }
+  }
+
+  void _showNormalAccountDialog() {
+    _showDialog(
+      title: 'حساب عادي',
+      children: <Widget>[
+        const Text('خيارات الحساب العادي', textAlign: TextAlign.center),
+        const SizedBox(height: 10),
+        DialogOptionTile(icon: Icons.person, title: 'عرض الملف الشخصي', onTap: () {
+          final NormalUserData userData = Provider.of<NormalUserData>(context, listen: false);
+          Navigator.push<void>(
+            context,
+            MaterialPageRoute<void>(
+              builder: (BuildContext routeContext) => ChangeNotifierProvider<NormalUserData>.value(
+                value: userData,
+                builder: (BuildContext providerContext, Widget? child) => const NormalUserProfileScreen(),
+              ),
+            ),
+          );
+        }),
+        DialogOptionTile(icon: Icons.store, title: 'المحلات المتابعة', onTap: () {
+          final NormalUserData userData = Provider.of<NormalUserData>(context, listen: false);
+          Navigator.push<void>(
+            context,
+            MaterialPageRoute<void>(
+              builder: (BuildContext routeContext) => ChangeNotifierProvider<NormalUserData>.value(
+                value: userData,
+                builder: (BuildContext providerContext, Widget? child) => const FollowedStoresScreen(),
+              ),
+            ),
+          );
+        }),
+        DialogOptionTile(icon: Icons.notifications, title: 'الإشعارات', onTap: () {
+          final NormalUserData userData = Provider.of<NormalUserData>(context, listen: false);
+          Navigator.push<void>(
+            context,
+            MaterialPageRoute<void>(
+              builder: (BuildContext routeContext) => ChangeNotifierProvider<NormalUserData>.value(
+                value: userData,
+                builder: (BuildContext providerContext, Widget? child) => const NotificationsScreen(),
+              ),
+            ),
+          );
+        }),
+        const SizedBox(height: 10),
+        AppButton(text: 'خروج من الحساب', color: Colors.grey[700]!, onPressed: _logout, minimumSize: const Size(double.infinity, 40)),
+      ],
+    );
+  }
+
+  void _showStoreAccountDialog() => _showDialog(
+        title: 'حساب المحل',
+        children: <Widget>[
+          const Text('مهام حساب المحل', textAlign: TextAlign.center),
+          const SizedBox(height: 10),
+          AppButton(text: 'إدارة واجهة المحل', color: Colors.blue[800]!, onPressed: () {
+            Navigator.pop(context);
+            Navigator.push<void>(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const ManageStoreInterfaceScreen()),
+            );
+          }, minimumSize: const Size(double.infinity, 40)),
+          const SizedBox(height: 10),
+          AppButton(text: 'إدارة المنتجات', color: Colors.green[700]!, onPressed: () {
+            Navigator.pop(context);
+            Navigator.push<void>(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const ManageProductsScreen()),
+            );
+          }, minimumSize: const Size(double.infinity, 40)),
+          const SizedBox(height: 10),
+          AppButton(text: 'خروج من الحساب', color: Colors.grey[700]!, onPressed: _logout, minimumSize: const Size(double.infinity, 40)),
+        ],
+      );
+
+  void _showDeliveryAccountDialog() => _showDialog(
+        title: 'حساب التوصيل',
+        children: <Widget>[
+          const Text('مهام حساب التوصيل', textAlign: TextAlign.center),
+          const SizedBox(height: 10),
+          AppButton(text: 'قائمة الطلبات', color: primaryColor, onPressed: () {
+            Navigator.pop(context);
+            Navigator.push<void>(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const DeliveryDashboardScreen(initialTabIndex: 0)),
+            );
+          }, minimumSize: const Size(double.infinity, 40)),
+          const SizedBox(height: 10),
+          AppButton(text: 'تأكيد التوصيل', color: primaryColor, onPressed: () {
+            Navigator.pop(context);
+            Navigator.push<void>(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const DeliveryDashboardScreen(initialTabIndex: 2)),
+            );
+          }, minimumSize: const Size(double.infinity, 40)),
+          const SizedBox(height: 10),
+          AppButton(text: 'خروج من الحساب', color: Colors.grey[700]!, onPressed: _logout, minimumSize: const Size(double.infinity, 40)),
+        ],
+      );
+
+  void _logout() async {
+    Navigator.pop(context);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(builder: (_) => const AccountTypeSelectionScreen()),
+      );
+    }
+  }
+
+  void _showAIDialog() {
+    NormalUserData? userData;
+    if (widget.accountType == 'normal') {
+      try {
+        userData = Provider.of<NormalUserData>(context, listen: false);
+      } catch (e) {
+        userData = null;
+      }
+    }
+
+    _showDialog(
+      title: 'خدمات الذكاء الإصطناعي',
+      children: <Widget>[
+        DialogOptionTile(icon: Icons.chat, title: 'روبوت دردشة', onTap: () => _showChatbotDialog(userData: userData)),
+        DialogOptionTile(icon: Icons.recommend, title: 'توصيات المنتجات', onTap: () => _showRecommendationsDialog(userData: userData)),
+      ],
+    );
+  }
+
+  void _showChatbotDialog({NormalUserData? userData}) {
+    String? response;
+    _showDialog(
+      title: 'روبوت الدردشة',
+      scrollable: true,
+      children: <Widget>[
+        StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextField(
+                controller: _chatController,
+                textAlign: TextAlign.right,
+                decoration: const InputDecoration(
+                  hintText: 'تفضل...كيف أساعدك',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              AppButton(text: 'إرسال', color: primaryColor, onPressed: () {
+                setState(() {
+                  response = _getChatbotResponse(_chatController.text, userData);
+                  _chatController.clear();
+                });
+              }, minimumSize: const Size(double.infinity, 40)),
+              if (response != null) ...<Widget>[
+                const SizedBox(height: 10),
+                Text(response!, textAlign: TextAlign.center),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getChatbotResponse(String query, NormalUserData? userData) {
+    final String lowerQuery = query.toLowerCase();
+
+    if (lowerQuery.contains('مرحبا') || lowerQuery.contains('اهلا')) {
+      return 'أهلاً بك! كيف يمكنني مساعدتك اليوم؟';
+    } else if (lowerQuery.contains('اسمي') || lowerQuery.contains('من انا')) {
+      if (userData != null) {
+        return 'أنت ${userData.username}، أليس كذلك؟ يسعدني خدمتك.';
+      }
+      return 'أنا لا أمتلك معلومات شخصية عنك حاليًا. كيف يمكنني مساعدتك؟';
+    } else if (lowerQuery.contains('المحلات المتابعة') || lowerQuery.contains('متابعة المحلات')) {
+      if (userData != null && userData.followedStoreIds.isNotEmpty) {
+        final List<String> followedNames = userData.followedStoreIds
+            .map<String>((String id) => userData.getStoreNameById(id))
+            .toList();
+        return 'أنت تتابع حاليًا: ${followedNames.join(', ')}. هل تود استكشاف محلات جديدة؟';
+      }
+      return 'أنت لا تتابع أي محلات حتى الآن. هل تود أن أساعدك في العثور على محلات رائعة؟';
+    } else if (lowerQuery.contains('المنتجات') || lowerQuery.contains('شراء')) {
+      return 'يمكنك تصفح المنتجات في المحلات المختلفة. إذا كنت صاحب محل، يمكنك إدارة منتجاتك من قسم "إدارة المنتجات".';
+    } else if (lowerQuery.contains('التوصيل')) {
+      return 'خدمة التوصيل متاحة في حساب التوصيل، تحقق من قائمة الطلبات لتتبع طلباتك أو إدارة مهام التوصيل.';
+    } else if (lowerQuery.contains('تخفيض') || lowerQuery.contains('عروض')) {
+      return 'لدينا دائمًا أفضل العروض والتخفيض! تفقد قسم "التخفيض" في الشاشة الرئيسية.';
+    } else {
+      return 'عذرًا، لم أفهم استفسارك. يرجى إعادة الصياغة أو طرح سؤال آخر.';
+    }
+  }
+
+  void _showRecommendationsDialog({NormalUserData? userData}) {
+    List<String> recommendations;
+    if (userData != null && userData.followedStoreIds.isNotEmpty) {
+      final String firstFollowedStore = userData.getStoreNameById(userData.followedStoreIds.first);
+      recommendations = <String>[
+        'منتج جديد في ${firstFollowedStore}!',
+        'عروض خاصة على الإلكترونيات التي قد تعجبك.',
+        'اكتشف "متجر الألبسة العصرية" - قد يعجبك!',
+        'تخفيض 15% على أدوات المطبخ.',
+      ];
+    } else {
+      recommendations = <String>[
+        'هاتف ذكي بخصائص رائعة - 22000 دج',
+        'قميص رجالي أنيق - 1500 دج',
+        'أفضل قهوة في المدينة - 600 دج',
+        'اكتشف تشكيلة واسعة من الملابس والأحذية.',
+      ];
+    }
+
+    _showDialog(
+      title: 'توصيات المنتجات',
+      children: <Widget>[
+        const Text('إليك بعض المنتجات والمحلات المقترحة بناءً على اهتماماتك:', textAlign: TextAlign.center),
+        const SizedBox(height: 10),
+        ...recommendations.map<Widget>((String product) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Text(product, textAlign: TextAlign.center),
+            )),
+      ],
+    );
+  }
+
+  void _showStatesSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      builder: (BuildContext context) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Container(
+              height: 4,
+              width: 40,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+              margin: const EdgeInsets.only(bottom: 16),
+            ),
+            const Text(
+              'اختر الولاية',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryColor),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _searchController,
+              textAlign: TextAlign.right,
+              decoration: InputDecoration(
+                hintText: 'ابحث عن ولاية',
+                prefixIcon: const Icon(Icons.search, color: primaryColor),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: primaryColor, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _filteredStates.length,
+                itemBuilder: (BuildContext context, int index) {
+                  final String stateName = _filteredStates[index];
+                  return _StateListItem(
+                    stateName: stateName,
+                    onTap: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('تم اختيار ولاية: $stateName'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showGpsLocationDialog() {
+    _showDialog(
+      title: 'تحديد الموقع الجغرافي',
+      children: <Widget>[
+        const Text(
+          'للعثور على أقرب محل، يرجى السماح للتطبيق بالوصول إلى موقعك الجغرافي (GPS).',
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 20),
+        AppButton(text: 'تحديد الموقع', color: primaryColor, onPressed: () {
+          Navigator.pop(context); // Close GPS dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('جاري تحديد موقعك...'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+          // Delay slightly to allow SnackBar to appear before next dialog
+          Future<void>.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              _showCategorySelectionDialog(); // Show category selection
+            }
+          });
+        }, minimumSize: const Size(double.infinity, 40)),
+      ],
+    );
+  }
+
+  void _showCategorySelectionDialog() {
+    _showDialog(
+      title: 'اختر فئة',
+      children: _productCategories.map<Widget>((String category) {
+        return DialogOptionTile(
+          icon: Icons.category,
+          title: category,
+          onTap: () {
+            // DialogOptionTile's onTap already handles Navigator.pop(context)
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('تم اختيار فئة: $category')),
+            );
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: HomeAppBar(searchController: _searchController),
+      body: HomeBody(
+        onEarnMoneyPressed: () => Navigator.push<void>(context, MaterialPageRoute<void>(builder: (_) => const EarnMoneyScreen())),
+        onSmartShoppingPressed: _showAIDialog,
+        onFavoritesPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لم يتم إضافة أي مفضلات بعد.')),
+        ),
+        onDiscountsPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا يوجد تخفيض حاليًا. ترقبوا المزيد!')),
+        ),
+      ),
+      bottomNavigationBar: HomeBottomNavigationBar(
+        selectedIndex: _selectedIndex,
+        onTap: _onBottomNavTapped,
+      ),
+    );
+  }
+
+  void _showDialog({String title = '', required List<Widget> children, bool scrollable = false}) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: title.isEmpty ? null : Text(title, style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+        content: scrollable
+            ? SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: children))
+            : Column(mainAxisSize: MainAxisSize.min, children: children),
+      ),
+    );
+  }
+}
+
+/// Widget for displaying a single state item in the list.
+class _StateListItem extends StatelessWidget {
+  final String stateName;
+  final VoidCallback onTap;
+
+  const _StateListItem({
+    required this.stateName,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        title: Text(
+          stateName,
+          textAlign: TextAlign.right,
+          style: const TextStyle(fontSize: 17, color: Colors.black87, fontWeight: FontWeight.normal),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+/// Earn Money Screen
+class EarnMoneyScreen extends StatefulWidget {
+  const EarnMoneyScreen({super.key});
+
+  @override
+  State<EarnMoneyScreen> createState() => _EarnMoneyScreenState();
+}
+
+class _EarnMoneyScreenState extends State<EarnMoneyScreen> {
+  final TextEditingController _codeController = TextEditingController();
+  int _pointsBalance = 0;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  void _inviteFriend() {
+    setState(() => _pointsBalance += 5);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تمت دعوة صديق! تم إضافة 5 نقاط إلى رصيدك')),
+    );
+  }
+
+  void _withdrawMoney() {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: const Text('الآن تم تقديم طلبك', textAlign: TextAlign.center),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('حسنًا', style: TextStyle(color: primaryColor)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: primaryColor,
+        title: const Text('اربح معنا المال', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const Text(
+              'يرجى إدخال الكود الذي ستعثر عليه عندما تتصفح المحلات المتواجد، سيظهر كود قم بنسخه ووضعه في المربع الخاص لتربح المال.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: primaryColor),
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _codeController,
+              textAlign: TextAlign.right,
+              decoration: const InputDecoration(
+                hintText: 'أدخل الكود هنا',
+                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                border: Border.all(color: primaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'رصيد النقاط الحالي: $_pointsBalance نقطة',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'ملاحظة: يرجى جمع النقاط وتحويلها إلى مال\nأقل قيمة لتحويل النقاط: 1000 نقطة',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+            AppButton(
+              text: 'تحويل النقاط',
+              color: primaryColor,
+              onPressed: () { /* Conversion logic here */ },
+              minimumSize: const Size(200, 40),
+            ),
+            const SizedBox(height: 10),
+            AppButton(
+              text: 'سحب المال',
+              color: Colors.green,
+              onPressed: _withdrawMoney,
+              minimumSize: const Size(200, 40),
+            ),
+            const SizedBox(height: 10),
+            AppButton(
+              text: 'دعوة الأصدقاء',
+              color: Colors.orange,
+              onPressed: _inviteFriend,
+              minimumSize: const Size(200, 40),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A generic text input field widget.
+class AppTextField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final String hint;
+  final bool isPassword;
+  final String? Function(String?)? validator;
+  final int maxLines;
+  final TextInputType keyboardType;
+  final bool labelOnTop;
+
+  const AppTextField({
+    required this.label,
+    required this.controller,
+    this.hint = '',
+    this.isPassword = false,
+    this.validator,
+    this.maxLines = 1,
+    this.keyboardType = TextInputType.text,
+    this.labelOnTop = true,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (labelOnTop) ...<Widget>[
+            Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+              textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 8),
+          ],
+          TextFormField(
+            controller: controller,
+            textAlign: TextAlign.right,
+            obscureText: isPassword,
+            maxLines: maxLines,
+            keyboardType: keyboardType,
+            decoration: InputDecoration(
+              hintText: hint,
+              labelText: labelOnTop ? null : label,
+              border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            ),
+            validator: validator,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A section title widget.
+class SectionTitle extends StatelessWidget {
+  final String title;
+
+  const SectionTitle({
+    required this.title,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 15.0, bottom: 8.0),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+}
+
+/// Dropdown for selecting store categories.
+class StoreCategoryDropdown extends StatelessWidget {
+  final StoreManagementData storeData;
+
+  const StoreCategoryDropdown({
+    required this.storeData,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const Text(
+            'تصنيف المحل',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            textAlign: TextAlign.right,
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: storeData.selectedCategory,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+            ),
+            hint: const Text('اختر تصنيفًا'),
+            isExpanded: true,
+            onChanged: (String? newValue) {
+              storeData.setSelectedCategory(newValue);
+            },
+            items: StoreManagementData.availableCategories.map<DropdownMenuItem<String>>((String category) {
+              return DropdownMenuItem<String>(
+                value: category,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(category),
+                ),
+              );
+            }).toList(),
+            validator: (String? value) => value == null ? 'الرجاء اختيار تصنيف' : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Manage Store Interface Screen
+class ManageStoreInterfaceScreen extends StatelessWidget {
+  const ManageStoreInterfaceScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<StoreManagementData>(
+      create: (BuildContext context) => StoreManagementData(),
+      builder: (BuildContext context, Widget? child) {
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: primaryColor,
+            title: const Text('إدارة واجهة المحل', style: TextStyle(color: Colors.white)),
+            centerTitle: true,
+          ),
+          body: Consumer<StoreManagementData>(
+            builder: (BuildContext context, StoreManagementData storeData, Widget? child) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: storeData.formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      SectionTitle(title: 'صورة المحل'),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('وظيفة تغيير الصورة غير متوفرة بعد.')),
+                            );
+                          },
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: <Widget>[
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(15.0),
+                                child: Image.network(
+                                  storeData.storeImageUrl,
+                                  width: 150,
+                                  height: 150,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                                    return Container(
+                                      width: 150,
+                                      height: 150,
+                                      color: Colors.grey[200],
+                                      child: const Icon(Icons.image, size: 80, color: Colors.grey),
+                                    );
+                                  },
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: CircleAvatar(
+                                  backgroundColor: primaryColor,
+                                  radius: 20,
+                                  child: const Icon(Icons.edit, color: Colors.white, size: 20),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      AppTextField(
+                        label: 'اسم المحل',
+                        controller: storeData.storeNameController,
+                        hint: 'أدخل اسم المحل',
+                        validator: (String? value) => (value == null || value.isEmpty) ? 'الرجاء إدخال اسم المحل' : null,
+                      ),
+                      AppTextField(
+                        label: 'رقم هاتف صاحب المحل',
+                        controller: storeData.phoneNumberController,
+                        hint: 'أدخل رقم الهاتف',
+                        keyboardType: TextInputType.phone,
+                        validator: (String? value) {
+                          if (value == null || value.isEmpty) {
+                            return 'الرجاء إدخال رقم الهاتف';
+                          }
+                          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                            return 'الرجاء إدخال أرقام فقط';
+                          }
+                          return null;
+                        },
+                      ),
+                      AppTextField(
+                        label: 'وصف المحل',
+                        controller: storeData.descriptionController,
+                        hint: 'وصف قصير عن المحل',
+                        maxLines: 3,
+                      ),
+                      AppTextField(
+                        label: 'عنوان المحل',
+                        controller: storeData.addressController,
+                        hint: 'أدخل عنوان المحل كاملاً',
+                        maxLines: 2,
+                      ),
+                      StoreCategoryDropdown(storeData: storeData),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: AppTextField(
+                              label: 'وقت الفتح',
+                              controller: storeData.openingTimeController,
+                              hint: 'مثال: 09:00 صباحًا',
+                              validator: (String? value) => (value == null || value.isEmpty) ? 'أدخل وقت الفتح' : null,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: AppTextField(
+                              label: 'وقت الإغلاق',
+                              controller: storeData.closingTimeController,
+                              hint: 'مثال: 09:00 مساءً',
+                              validator: (String? value) => (value == null || value.isEmpty) ? 'أدخل وقت الإغلاق' : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      AppTextField(
+                        label: 'رابط وسائل التواصل الاجتماعي',
+                        controller: storeData.socialMediaLinkController,
+                        hint: 'أدخل رابط Facebook, Instagram...',
+                        keyboardType: TextInputType.url,
+                      ),
+                      const SizedBox(height: 30),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        onPressed: () {
+                          if (storeData.formKey.currentState!.validate()) {
+                            storeData.saveDetails();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('تم حفظ التغييرات بنجاح!')),
+                            );
+                          }
+                        },
+                        child: const Text('حفظ التغييرات', style: TextStyle(fontSize: 18)),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Data model for managing store interface details
+class StoreManagementData extends ChangeNotifier {
+  final TextEditingController _storeNameController;
+  final TextEditingController _phoneNumberController;
+  final TextEditingController _descriptionController;
+  final TextEditingController _addressController;
+  final TextEditingController _openingTimeController;
+  final TextEditingController _closingTimeController;
+  final TextEditingController _socialMediaLinkController;
+
+  String _storeImageUrl;
+  String? _selectedCategory;
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  StoreManagementData()
+      : _storeNameController = TextEditingController(text: 'متجر الأحلام'),
+        _phoneNumberController = TextEditingController(text: '0550123456'),
+        _descriptionController = TextEditingController(text: 'متجرك المفضل لكل ما تحتاجه!'),
+        _addressController = TextEditingController(text: '123 الشارع الرئيسي، المدينة'),
+        _openingTimeController = TextEditingController(text: '09:00 صباحًا'),
+        _closingTimeController = TextEditingController(text: '09:00 مساءً'),
+        _socialMediaLinkController = TextEditingController(text: 'https://facebook.com/my_dream_store'),
+        _storeImageUrl = 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg',
+        _selectedCategory = 'إلكترونيات';
+
+  TextEditingController get storeNameController => _storeNameController;
+  TextEditingController get phoneNumberController => _phoneNumberController;
+  TextEditingController get descriptionController => _descriptionController;
+  TextEditingController get addressController => _addressController;
+  TextEditingController get openingTimeController => _openingTimeController;
+  TextEditingController get closingTimeController => _closingTimeController;
+  TextEditingController get socialMediaLinkController => _socialMediaLinkController;
+  String get storeImageUrl => _storeImageUrl;
+  String? get selectedCategory => _selectedCategory;
+  GlobalKey<FormState> get formKey => _formKey;
+
+  static const List<String> availableCategories = <String>[
+    'إلكترونيات',
+    'ملابس',
+    'أطعمة ومشروبات',
+    'منزل وحديقة',
+    'أخرى',
+  ];
+
+  void setSelectedCategory(String? newCategory) {
+    if (_selectedCategory != newCategory) {
+      _selectedCategory = newCategory;
+      notifyListeners();
+    }
+  }
+
+  void updateStoreImage(String newUrl) {
+    _storeImageUrl = newUrl;
+    notifyListeners();
+  }
+
+  void saveDetails() {}
+
+  @override
+  void dispose() {
+    _storeNameController.dispose();
+    _phoneNumberController.dispose();
+    _descriptionController.dispose();
+    _addressController.dispose();
+    _openingTimeController.dispose();
+    _closingTimeController.dispose();
+    _socialMediaLinkController.dispose();
+    super.dispose();
+  }
+}
+
+/// Product Data Model
+class Product {
+  final String id;
+  String name;
+  String description;
+  double price;
+  String imageUrl;
+  String category;
+  double? discountPrice;
+  bool isDiscounted;
+  int stock;
+
+  Product({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.price,
+    required this.imageUrl,
+    required this.category,
+    this.discountPrice,
+    this.isDiscounted = false,
+    this.stock = 0,
+  });
+
+  Product copyWith({
+    String? id,
+    String? name,
+    String? description,
+    double? price,
+    String? imageUrl,
+    String? category,
+    double? discountPrice,
+    bool? isDiscounted,
+    int? stock,
+  }) {
+    return Product(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      imageUrl: imageUrl ?? this.imageUrl,
+      category: category ?? this.category,
+      discountPrice: discountPrice ?? this.discountPrice,
+      isDiscounted: isDiscounted ?? this.isDiscounted,
+      stock: stock ?? this.stock,
+    );
+  }
+}
+
+/// Data model for managing products
+class ProductManagementData extends ChangeNotifier {
+  final List<Product> _products = <Product>[
+    Product(
+      id: '1',
+      name: 'هاتف ذكي X1',
+      description: 'هاتف ذكي بخصائص ممتازة وبطارية تدوم طويلاً.',
+      price: 25000.0,
+      imageUrl: 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg',
+      category: 'إلكترونيات',
+      discountPrice: 22000.0,
+      isDiscounted: true,
+      stock: 50,
+    ),
+    Product(
+      id: '2',
+      name: 'قميص رجالي',
+      description: 'قميص أنيق ومريح مصنوع من القطن الخالص.',
+      price: 1500.0,
+      imageUrl: 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg',
+      category: 'ملابس',
+      discountPrice: null,
+      isDiscounted: false,
+      stock: 120,
+    ),
+    Product(
+      id: '3',
+      name: 'قهوة سريعة التحضير',
+      description: 'قهوة فاخرة بطعم غني ورائحة عطرة.',
+      price: 750.0,
+      imageUrl: 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg',
+      category: 'أطعمة ومشروبات',
+      discountPrice: 600.0,
+      isDiscounted: true,
+      stock: 200,
+    ),
+  ];
+
+  final TextEditingController _nameController;
+  final TextEditingController _descriptionController;
+  final TextEditingController _priceController;
+  final TextEditingController _imageUrlController;
+  final TextEditingController _discountPriceController;
+  final TextEditingController _stockController;
+  String? _selectedCategory;
+  bool _isDiscountEnabled;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  ProductManagementData()
+      : _nameController = TextEditingController(),
+        _descriptionController = TextEditingController(),
+        _priceController = TextEditingController(),
+        _imageUrlController = TextEditingController(),
+        _discountPriceController = TextEditingController(),
+        _stockController = TextEditingController(),
+        _selectedCategory = availableProductCategories.first,
+        _isDiscountEnabled = false;
+
+  List<Product> get products => List<Product>.unmodifiable(_products);
+  TextEditingController get nameController => _nameController;
+  TextEditingController get descriptionController => _descriptionController;
+  TextEditingController get priceController => _priceController;
+  TextEditingController get imageUrlController => _imageUrlController;
+  TextEditingController get discountPriceController => _discountPriceController;
+  TextEditingController get stockController => _stockController;
+  String? get selectedCategory => _selectedCategory;
+  bool get isDiscountEnabled => _isDiscountEnabled;
+  GlobalKey<FormState> get formKey => _formKey;
+
+  static const List<String> availableProductCategories = <String>[
+    'إلكترونيات',
+    'ملابس',
+    'أطعمة ومشروبات',
+    'منزل وحديقة',
+    'رياضة',
+    'كتب',
+    'أخرى',
+  ];
+
+  void setSelectedCategory(String? newCategory) {
+    if (_selectedCategory != newCategory) {
+      _selectedCategory = newCategory;
+      notifyListeners();
+    }
+  }
+
+  void setIsDiscountEnabled(bool value) {
+    _isDiscountEnabled = value;
+    if (!value) {
+      _discountPriceController.clear();
+    }
+    notifyListeners();
+  }
+
+  void addProduct() {
+    if (_formKey.currentState!.validate()) {
+      final double price = double.parse(_priceController.text);
+      final double? discountPrice = _discountPriceController.text.isNotEmpty
+          ? double.tryParse(_discountPriceController.text)
+          : null;
+      final int stock = int.parse(_stockController.text);
+
+      final Product newProduct = Product(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: _nameController.text,
+        description: _descriptionController.text,
+        price: price,
+        imageUrl: _imageUrlController.text.isEmpty
+            ? 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg'
+            : _imageUrlController.text,
+        category: _selectedCategory!,
+        discountPrice: _isDiscountEnabled ? discountPrice : null,
+        isDiscounted: _isDiscountEnabled && discountPrice != null && discountPrice < price,
+        stock: stock,
+      );
+      _products.add(newProduct);
+      clearControllers();
+      notifyListeners();
+    }
+  }
+
+  void updateProduct(Product originalProduct) {
+    if (_formKey.currentState!.validate()) {
+      final int index = _products.indexWhere((Product p) => p.id == originalProduct.id);
+      if (index != -1) {
+        final double price = double.parse(_priceController.text);
+        final double? discountPrice = _discountPriceController.text.isNotEmpty
+            ? double.tryParse(_discountPriceController.text)
+            : null;
+        final int stock = int.parse(_stockController.text);
+
+        _products[index] = originalProduct.copyWith(
+          name: _nameController.text,
+          description: _descriptionController.text,
+          price: price,
+          imageUrl: _imageUrlController.text.isEmpty
+              ? 'https://www.gstatic.com/flutter-onestack-prototype/genui/example_1.jpg'
+              : _imageUrlController.text,
+          category: _selectedCategory,
+          discountPrice: _isDiscountEnabled ? discountPrice : null,
+          isDiscounted: _isDiscountEnabled && discountPrice != null && discountPrice < price,
+          stock: stock,
+        );
+        clearControllers();
+        notifyListeners();
+      }
+    }
+  }
+
+  void deleteProduct(String id) {
+    _products.removeWhere((Product product) => product.id == id);
+    notifyListeners();
+  }
+
+  void setProductForEdit(Product product) {
+    _nameController.text = product.name;
+    _descriptionController.text = product.description;
+    _priceController.text = product.price.toStringAsFixed(2);
+    _imageUrlController.text = product.imageUrl;
+    _selectedCategory = product.category;
+    _discountPriceController.text = product.discountPrice?.toStringAsFixed(2) ?? '';
+    _stockController.text = product.stock.toString();
+    _isDiscountEnabled = product.isDiscounted && (product.discountPrice != null && product.discountPrice! < product.price);
+    notifyListeners();
+  }
+
+  void clearControllers() {
+    _nameController.clear();
+    _descriptionController.clear();
+    _priceController.clear();
+    _imageUrlController.clear();
+    _discountPriceController.clear();
+    _stockController.clear();
+    _selectedCategory = availableProductCategories.first;
+    _isDiscountEnabled = false;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    _imageUrlController.dispose();
+    _discountPriceController.dispose();
+    _stockController.dispose();
+    super.dispose();
+  }
+}
+
+/// Manage Products Screen
+class ManageProductsScreen extends StatelessWidget {
+  const ManageProductsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<ProductManagementData>(
+      create: (BuildContext context) => ProductManagementData(),
+      builder: (BuildContext context, Widget? child) {
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: primaryColor,
+            title: const Text('إدارة المنتجات', style: TextStyle(color: Colors.white)),
+            centerTitle: true,
+          ),
+          body: Consumer<ProductManagementData>(
+            builder: (BuildContext context, ProductManagementData productData, Widget? child) {
+              return productData.products.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          const Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey),
+                          const SizedBox(height: 10),
+                          Text(
+                            'لا توجد منتجات حتى الآن. ابدأ بإضافة منتج جديد!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(8.0),
+                      itemCount: productData.products.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        final Product product = productData.products[index];
+                        return ProductListItem(
+                          product: product,
+                          onEdit: () => _showAddEditProductDialog(context, productData, product: product),
+                          onDelete: () {
+                            showDialog<void>(
+                              context: context,
+                              builder: (BuildContext ctx) => AlertDialog(
+                                title: const Text('تأكيد الحذف'),
+                                content: Text('هل أنت متأكد أنك تريد حذف "${product.name}"؟'),
+                                actions: <Widget>[
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('إلغاء'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      productData.deleteProduct(product.id);
+                                      Navigator.pop(ctx);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('تم حذف "${product.name}" بنجاح')),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                    child: const Text('حذف'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    );
+            },
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => _showAddEditProductDialog(context, Provider.of<ProductManagementData>(context, listen: false)),
+            label: const Text('إضافة منتج'),
+            icon: const Icon(Icons.add),
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
+          ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        );
+      },
+    );
+  }
+
+  void _showAddEditProductDialog(BuildContext context, ProductManagementData productData, {Product? product}) {
+    if (product != null) {
+      productData.setProductForEdit(product);
+    } else {
+      productData.clearControllers();
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (BuildContext ctx) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: ProductForm(
+            productData: productData,
+            isEditing: product != null,
+            originalProduct: product,
+            onSave: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(product != null ? 'تم تحديث المنتج بنجاح!' : 'تم إضافة المنتج بنجاح!')),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Widget for displaying a single product item
+class ProductListItem extends StatelessWidget {
+  final Product product;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const ProductListItem({
+    required this.product,
+    required this.onEdit,
+    required this.onDelete,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Image.network(
+                product.imageUrl,
+                width: 90,
+                height: 90,
+                fit: BoxFit.cover,
+                errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
+                  return Container(
+                    width: 90,
+                    height: 90,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.image_not_supported, color: Colors.grey, size: 40),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  Text(
+                    product.name,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.right,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    product.description,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                  ),
+                  const SizedBox(height: 8),
+                  if (product.isDiscounted && product.discountPrice != null && product.discountPrice! < product.price)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: <Widget>[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade700,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: const Text(
+                            'تخفيض',
+                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${product.discountPrice!.toStringAsFixed(2)} دج',
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.green),
+                          textAlign: TextAlign.right,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${product.price.toStringAsFixed(2)} دج',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      '${product.price.toStringAsFixed(2)} دج',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor),
+                      textAlign: TextAlign.right,
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'التصنيف: ${product.category}',
+                    style: const TextStyle(fontSize: 13, color: Colors.black54),
+                    textAlign: TextAlign.right,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'الكمية: ${product.stock}',
+                    style: const TextStyle(fontSize: 13, color: Colors.black54),
+                    textAlign: TextAlign.right,
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: onEdit,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: onDelete,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dropdown for selecting product categories.
+class ProductCategoryDropdown extends StatelessWidget {
+  final ProductManagementData productData;
+
+  const ProductCategoryDropdown({
+    required this.productData,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const Text(
+            'تصنيف المنتج',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            textAlign: TextAlign.right,
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: productData.selectedCategory,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+            ),
+            hint: const Text('اختر تصنيفًا'),
+            isExpanded: true,
+            onChanged: (String? newValue) {
+              productData.setSelectedCategory(newValue);
+            },
+            items: ProductManagementData.availableProductCategories.map<DropdownMenuItem<String>>((String category) {
+              return DropdownMenuItem<String>(
+                value: category,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(category),
+                ),
+              );
+            }).toList(),
+            validator: (String? value) => value == null ? 'الرجاء اختيار تصنيف' : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Form for adding or editing a product
+class ProductForm extends StatelessWidget {
+  final ProductManagementData productData;
+  final bool isEditing;
+  final Product? originalProduct;
+  final VoidCallback onSave;
+
+  const ProductForm({
+    required this.productData,
+    required this.isEditing,
+    this.originalProduct,
+    required this.onSave,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<ProductManagementData>.value(
+      value: productData,
+      builder: (BuildContext providerContext, Widget? child) {
+        return Consumer<ProductManagementData>(
+          builder: (BuildContext consumerContext, ProductManagementData pData, Widget? consumerChild) {
+            return Form(
+              key: pData.formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    isEditing ? 'تعديل المنتج' : 'إضافة منتج جديد',
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryColor),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  AppTextField(
+                    label: 'اسم المنتج',
+                    controller: pData.nameController,
+                    hint: 'أدخل اسم المنتج',
+                    validator: (String? value) => (value == null || value.isEmpty) ? 'الرجاء إدخال اسم المنتج' : null,
+                  ),
+                  AppTextField(
+                    label: 'وصف المنتج',
+                    controller: pData.descriptionController,
+                    hint: 'وصف مختصر للمنتج',
+                    maxLines: 3,
+                  ),
+                  AppTextField(
+                    label: 'سعر المنتج (دج)',
+                    controller: pData.priceController,
+                    hint: 'أدخل سعر المنتج',
+                    keyboardType: TextInputType.number,
+                    validator: (String? value) {
+                      if (value == null || value.isEmpty) return 'الرجاء إدخال السعر';
+                      if (double.tryParse(value) == null) return 'الرجاء إدخال رقم صحيح';
+                      if (double.parse(value) <= 0) return 'السعر يجب أن يكون أكبر من صفر';
+                      return null;
+                    },
+                  ),
+                  AppTextField(
+                    label: 'رابط صورة المنتج (اختياري)',
+                    controller: pData.imageUrlController,
+                    hint: 'https://example.com/image.jpg',
+                    keyboardType: TextInputType.url,
+                    validator: (String? value) {
+                      if (value != null && value.isNotEmpty) {
+                        final Uri? uri = Uri.tryParse(value);
+                        if (uri == null || !uri.isAbsolute) {
+                          return 'الرجاء إدخال رابط صحيح';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  ProductCategoryDropdown(productData: pData),
+                  AppTextField(
+                    label: 'الكمية في المخزون',
+                    controller: pData.stockController,
+                    hint: 'أدخل الكمية المتوفرة',
+                    keyboardType: TextInputType.number,
+                    validator: (String? value) {
+                      if (value == null || value.isEmpty) return 'الرجاء إدخال الكمية';
+                      if (int.tryParse(value) == null) return 'الرجاء إدخال رقم صحيح للكمية';
+                      if (int.parse(value) < 0) return 'الكمية لا يمكن أن تكون سالبة';
+                      return null;
+                    },
+                  ),
+                  SwitchListTile(
+                    title: const Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'تفعيل التخفيض',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                      ),
+                    ),
+                    value: pData.isDiscountEnabled,
+                    onChanged: (bool value) {
+                      pData.setIsDiscountEnabled(value);
+                    },
+                    activeThumbColor: primaryColor,
+                  ),
+                  if (pData.isDiscountEnabled)
+                    AppTextField(
+                      label: 'سعر التخفيض (دج)',
+                      controller: pData.discountPriceController,
+                      hint: 'أدخل سعر التخفيض',
+                      keyboardType: TextInputType.number,
+                      validator: (String? value) {
+                        if (value == null || value.isEmpty) return 'الرجاء إدخال سعر التخفيض';
+                        final double? discountPrice = double.tryParse(value);
+                        if (discountPrice == null) return 'الرجاء إدخال رقم صحيح';
+                        final double? originalPrice = double.tryParse(pData.priceController.text);
+                        if (originalPrice == null || discountPrice >= originalPrice) {
+                          return 'يجب أن يكون سعر التخفيض أقل من السعر الأصلي';
+                        }
+                        return null;
+                      },
+                    ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    onPressed: () {
+                      if (pData.formKey.currentState!.validate()) {
+                        if (isEditing) {
+                          pData.updateProduct(originalProduct!);
+                        } else {
+                          pData.addProduct();
+                        }
+                        onSave();
+                      }
+                    },
+                    child: Text(isEditing ? 'حفظ التغييرات' : 'إضافة المنتج', style: const TextStyle(fontSize: 18)),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () => Navigator.pop(consumerContext),
+                    child: const Text('إلغاء', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+enum OrderStatus { pending, confirmed, inProgress, delivered, cancelled }
+
+class Order {
+  final String id;
+  String customerName;
+  String deliveryAddress;
+  String phoneNumber;
+  List<String> items;
+  OrderStatus status;
+  final DateTime orderDate;
+
+  Order({
+    required this.id,
+    required this.customerName,
+    required this.deliveryAddress,
+    required this.phoneNumber,
+    required this.items,
+    required this.status,
+    required this.orderDate,
+  });
+
+  Order copyWith({
+    String? id,
+    String? customerName,
+    String? deliveryAddress,
+    String? phoneNumber,
+    List<String>? items,
+    OrderStatus? status,
+    DateTime? orderDate,
+  }) {
+    return Order(
+      id: id ?? this.id,
+      customerName: customerName ?? this.customerName,
+      deliveryAddress: deliveryAddress ?? this.deliveryAddress,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      items: items ?? this.items,
+      status: status ?? this.status,
+      orderDate: orderDate ?? this.orderDate,
+    );
+  }
+}
+
+class DeliveryManagementData extends ChangeNotifier {
+  final List<Order> _orders = <Order>[
+    Order(
+      id: 'ORD001',
+      customerName: 'أحمد علي',
+      deliveryAddress: 'حي الأمل، 123 الشارع الرئيسي',
+      phoneNumber: '0770123456',
+      items: <String>['هاتف ذكي X1', 'شاحن USB'],
+      status: OrderStatus.pending,
+      orderDate: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+    Order(
+      id: 'ORD002',
+      customerName: 'فاطمة الزهراء',
+      deliveryAddress: 'عمارة السعادة، 456 طريق الحرية',
+      phoneNumber: '0780987654',
+      items: <String>['قميص رجالي XL', 'بنطال جينز'],
+      status: OrderStatus.confirmed,
+      orderDate: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+    Order(
+      id: 'ORD003',
+      customerName: 'محمد سعيد',
+      deliveryAddress: 'فيلا رقم 7، حي النور',
+      phoneNumber: '0661234567',
+      items: <String>['قهوة سريعة التحضير', 'حليب'],
+      status: OrderStatus.inProgress,
+      orderDate: DateTime.now().subtract(const Duration(hours: 5)),
+    ),
+    Order(
+      id: 'ORD004',
+      customerName: 'ليلى كرم',
+      deliveryAddress: 'شارع السلام، 789 بناية النخيل',
+      phoneNumber: '0555112233',
+      items: <String>['شاشة تلفاز 55 بوصة'],
+      status: OrderStatus.delivered,
+      orderDate: DateTime.now().subtract(const Duration(days: 3)),
+    ),
+    Order(
+      id: 'ORD005',
+      customerName: 'يوسف العثماني',
+      deliveryAddress: 'مجمع الأحياء، العمارة ب، شقة 10',
+      phoneNumber: '0799887766',
+      items: <String>['مصباح LED', 'طاولة قهوة'],
+      status: OrderStatus.pending,
+      orderDate: DateTime.now().subtract(const Duration(hours: 12)),
+    ),
+    Order(
+      id: 'ORD006',
+      customerName: 'نور الهدى',
+      deliveryAddress: 'شارع الزهور، 202 المشتل',
+      phoneNumber: '0771234567',
+      items: <String>['مكواة بخارية'],
+      status: OrderStatus.confirmed,
+      orderDate: DateTime.now().subtract(const Duration(hours: 20)),
+    ),
+  ];
+
+  List<Order> get allOrders => List<Order>.unmodifiable(_orders);
+
+  List<Order> get pendingOrders =>
+      _orders.where((Order order) => order.status == OrderStatus.pending).toList();
+
+  List<Order> get confirmedOrders =>
+      _orders.where((Order order) => order.status == OrderStatus.confirmed).toList();
+
+  List<Order> get inProgressOrders =>
+      _orders.where((Order order) => order.status == OrderStatus.inProgress).toList();
+
+  List<Order> get deliveredOrders =>
+      _orders.where((Order order) => order.status == OrderStatus.delivered).toList();
+
+  List<Order> get cancelledOrders =>
+      _orders.where((Order order) => order.status == OrderStatus.cancelled).toList();
+
+  void updateOrderStatus(String orderId, OrderStatus newStatus) {
+    final int index = _orders.indexWhere((Order order) => order.id == orderId);
+    if (index != -1) {
+      _orders[index] = _orders[index].copyWith(status: newStatus);
+      notifyListeners();
+    }
+  }
+
+  void addOrder(Order order) {
+    _orders.add(order);
+    notifyListeners();
+  }
+
+  void deleteOrder(String orderId) {
+    _orders.removeWhere((Order order) => order.id == orderId);
+    notifyListeners();
+  }
+}
+
+/// Widget for displaying a single order item in the delivery dashboard.
+class OrderListItem extends StatelessWidget {
+  final Order order;
+  final ValueChanged<OrderStatus> onStatusChange;
+
+  const OrderListItem({
+    required this.order,
+    required this.onStatusChange,
+    super.key,
+  });
+
+  Color _getStatusColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pending:
+        return Colors.orange;
+      case OrderStatus.confirmed:
+        return Colors.blue;
+      case OrderStatus.inProgress:
+        return Colors.purple;
+      case OrderStatus.delivered:
+        return Colors.green;
+      case OrderStatus.cancelled:
+        return Colors.red;
+    }
+  }
+
+  String _getStatusText(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pending:
+        return 'قيد الانتظار';
+      case OrderStatus.confirmed:
+        return 'مؤكدة';
+      case OrderStatus.inProgress:
+        return 'قيد التوصيل';
+      case OrderStatus.delivered:
+        return 'تم توصيلها';
+      case OrderStatus.cancelled:
+        return 'ملغاة';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Chip(
+                  label: Text(
+                    _getStatusText(order.status),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  backgroundColor: _getStatusColor(order.status),
+                ),
+                Text(
+                  'طلب رقم: ${order.id}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.right,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'العميل: ${order.customerName}',
+              style: const TextStyle(fontSize: 15),
+              textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 5),
+            Text(
+              'العنوان: ${order.deliveryAddress}',
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 5),
+            Text(
+              'رقم الهاتف: ${order.phoneNumber}',
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 5),
+            Text(
+              'الطلبات: ${order.items.join(', ')}',
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 5),
+            Text(
+              'تاريخ الطلب: ${order.orderDate.day}/${order.orderDate.month}/${order.orderDate.year}',
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 15),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8.0,
+              runSpacing: 8.0,
+              children: <Widget>[
+                if (order.status == OrderStatus.pending)
+                  AppButton(
+                    text: 'تأكيد',
+                    color: Colors.blue,
+                    onPressed: () => onStatusChange(OrderStatus.confirmed),
+                    minimumSize: const Size(100, 36),
+                  ),
+                if (order.status == OrderStatus.confirmed)
+                  AppButton(
+                    text: 'بدء التوصيل',
+                    color: Colors.purple,
+                    onPressed: () => onStatusChange(OrderStatus.inProgress),
+                    minimumSize: const Size(120, 36),
+                  ),
+                if (order.status == OrderStatus.inProgress)
+                  AppButton(
+                    text: 'تم التوصيل',
+                    color: Colors.green,
+                    onPressed: () => onStatusChange(OrderStatus.delivered),
+                    minimumSize: const Size(120, 36),
+                  ),
+                if (order.status != OrderStatus.delivered && order.status != OrderStatus.cancelled)
+                  TextButton(
+                    onPressed: () => onStatusChange(OrderStatus.cancelled),
+                    child: const Text('إلغاء', style: TextStyle(color: Colors.red)),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// List view for orders in the delivery dashboard.
+class OrderListView extends StatelessWidget {
+  final List<Order> Function(DeliveryManagementData) getOrders;
+
+  const OrderListView({
+    required this.getOrders,
+    super.key,
+  });
+
+  String _statusToString(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pending:
+        return 'قيد الانتظار';
+      case OrderStatus.confirmed:
+        return 'مؤكدة';
+      case OrderStatus.inProgress:
+        return 'قيد التوصيل';
+      case OrderStatus.delivered:
+        return 'تم توصيلها';
+      case OrderStatus.cancelled:
+        return 'ملغاة';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<DeliveryManagementData>(
+      builder: (BuildContext context, DeliveryManagementData deliveryData, Widget? child) {
+        final List<Order> orders = getOrders(deliveryData);
+        if (orders.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                const Icon(Icons.list_alt, size: 80, color: Colors.grey),
+                const SizedBox(height: 10),
+                Text(
+                  'لا توجد طلبات في هذا التصنيف حاليًا.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(8.0),
+          itemCount: orders.length,
+          itemBuilder: (BuildContext context, int index) {
+            final Order order = orders[index];
+            return OrderListItem(
+              order: order,
+              onStatusChange: (OrderStatus newStatus) {
+                deliveryData.updateOrderStatus(order.id, newStatus);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('تم تحديث حالة الطلب ${order.id} إلى ${_statusToString(newStatus)}')),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// Delivery Dashboard Screen for delivery accounts
+class DeliveryDashboardScreen extends StatefulWidget {
+  final int initialTabIndex;
+  const DeliveryDashboardScreen({super.key, this.initialTabIndex = 0});
+
+  @override
+  State<DeliveryDashboardScreen> createState() => _DeliveryDashboardScreenState();
+}
+
+class _DeliveryDashboardScreenState extends State<DeliveryDashboardScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 6, vsync: this, initialIndex: widget.initialTabIndex);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<DeliveryManagementData>(
+      create: (BuildContext context) => DeliveryManagementData(),
+      builder: (BuildContext context, Widget? child) {
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: primaryColor,
+            title: const Text('لوحة تحكم التوصيل', style: TextStyle(color: Colors.white)),
+            centerTitle: true,
+            bottom: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              indicatorColor: Colors.white,
+              tabs: const <Tab>[
+                Tab(text: 'جميع الطلبات'),
+                Tab(text: 'طلبات قيد الانتظار'),
+                Tab(text: 'طلبات مؤكدة'),
+                Tab(text: 'طلبات قيد التوصيل'),
+                Tab(text: 'طلبات تم توصيلها'),
+                Tab(text: 'طلبات ملغاة'),
+              ],
+            ),
+          ),
+          body: TabBarView(
+            controller: _tabController,
+            children: <Widget>[
+              OrderListView(getOrders: (DeliveryManagementData data) => data.allOrders),
+              OrderListView(getOrders: (DeliveryManagementData data) => data.pendingOrders),
+              OrderListView(getOrders: (DeliveryManagementData data) => data.confirmedOrders),
+              OrderListView(getOrders: (DeliveryManagementData data) => data.inProgressOrders),
+              OrderListView(getOrders: (DeliveryManagementData data) => data.deliveredOrders),
+              OrderListView(getOrders: (DeliveryManagementData data) => data.cancelledOrders),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Normal User Profile Screen
+class NormalUserProfileScreen extends StatelessWidget {
+  const NormalUserProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: primaryColor,
+        title: const Text('الملف الشخصي', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+      ),
+      body: Consumer<NormalUserData>(
+        builder: (BuildContext context, NormalUserData userData, Widget? child) {
+          final TextEditingController usernameController = TextEditingController(text: userData.username);
+          final TextEditingController emailController = TextEditingController(text: userData.email);
+          final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Form(
+              key: formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('وظيفة تغيير صورة الملف الشخصي غير متوفرة بعد.')),
+                        );
+                      },
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: <Widget>[
+                          CircleAvatar(
+                            radius: 60,
+                            // ignore: deprecated_member_use
+                            backgroundColor: primaryColor.withOpacity(0.1),
+                            backgroundImage: userData.profileImageUrl.isNotEmpty
+                                ? Image.network(userData.profileImageUrl, fit: BoxFit.cover).image
+                                : null,
+                            child: userData.profileImageUrl.isEmpty
+                                ? const Icon(Icons.person, size: 60, color: primaryColor)
+                                : null,
+                          ),
+                          CircleAvatar(
+                            backgroundColor: primaryColor,
+                            radius: 18,
+                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  AppTextField(
+                    label: 'اسم المستخدم',
+                    controller: usernameController,
+                    validator: (String? value) => (value == null || value.isEmpty) ? 'اسم المستخدم مطلوب' : null,
+                  ),
+                  AppTextField(
+                    label: 'البريد الإلكتروني',
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (String? value) =>
+                        (value == null || value.isEmpty || !value.contains('@')) ? 'أدخل بريدًا إلكترونيًا صحيحًا' : null,
+                  ),
+                  const SizedBox(height: 30),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    onPressed: () {
+                      if (formKey.currentState!.validate()) {
+                        userData.updateProfile(
+                            newUsername: usernameController.text, newEmail: emailController.text);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تم حفظ معلومات الملف الشخصي بنجاح!')),
+                        );
+                      }
+                    },
+                    child: const Text('حفظ التغييرات', style: TextStyle(fontSize: 18)),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Widget for displaying a single followed store item.
+class FollowedStoreItem extends StatelessWidget {
+  final String storeName;
+  final String storeImage;
+  final VoidCallback onUnfollow;
+
+  const FollowedStoreItem({
+    required this.storeName,
+    required this.storeImage,
+    required this.onUnfollow,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.favorite, color: Colors.red),
+              onPressed: onUnfollow,
+              tooltip: 'إلغاء المتابعة',
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  Text(
+                    storeName,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.right,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'محل تجاري',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    textAlign: TextAlign.right,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Image.network(
+                storeImage,
+                width: 70,
+                height: 70,
+                fit: BoxFit.cover,
+                errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
+                  return Container(
+                    width: 70,
+                    height: 70,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.store, size: 40, color: Colors.grey),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Followed Stores Screen for normal user.
+class FollowedStoresScreen extends StatelessWidget {
+  const FollowedStoresScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: primaryColor,
+        title: const Text('المحلات المتابعة', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+      ),
+      body: Consumer<NormalUserData>(
+        builder: (BuildContext context, NormalUserData userData, Widget? child) {
+          if (userData.followedStoreIds.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const Icon(Icons.storefront_outlined, size: 80, color: Colors.grey),
+                  const SizedBox(height: 10),
+                  Text(
+                    'لم تقم بمتابعة أي محل بعد. ابدأ باكتشاف المحلات!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(8.0),
+            itemCount: userData.followedStoreIds.length,
+            itemBuilder: (BuildContext context, int index) {
+              final String storeId = userData.followedStoreIds[index];
+              final String storeName = userData.getStoreNameById(storeId);
+              final String storeImage = userData.getStoreImageById(storeId);
+              return FollowedStoreItem(
+                storeName: storeName,
+                storeImage: storeImage,
+                onUnfollow: () {
+                  showDialog<void>(
+                    context: context,
+                    builder: (BuildContext dialogContext) => AlertDialog(
+                      title: const Text('تأكيد إلغاء المتابعة'),
+                      content: Text('هل ترغب في إزالة متابعة محل "$storeName"؟'),
+                      actions: <Widget>[
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: const Text('إلغاء'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            userData.unfollowStore(storeId);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('تم إلغاء متابعة محل "$storeName"')),
+                            );
+                            Navigator.pop(dialogContext);
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                          child: const Text('نعم، إزالة'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          _showDiscoverStoresDialog(context);
+        },
+        label: const Text('اكتشف محلات جديدة'),
+        icon: const Icon(Icons.add_business),
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  void _showDiscoverStoresDialog(BuildContext context) {
+    final NormalUserData userData = Provider.of<NormalUserData>(context, listen: false);
+    final List<String> availableStores = userData.getAllAvailableStores();
+    final List<String> notFollowedStores = availableStores
+        .where((String storeId) => !userData.followedStoreIds.contains(storeId))
+        .toList();
+
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('اكتشف محلات جديدة', textAlign: TextAlign.center),
+          content: notFollowedStores.isEmpty
+              ? const Text('لا توجد محلات جديدة لاكتشافها حاليًا.', textAlign: TextAlign.center)
+              : SizedBox(
+                  width: double.maxFinite,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: notFollowedStores.length,
+                    itemBuilder: (BuildContext listContext, int index) {
+                      final String storeId = notFollowedStores[index];
+                      final String storeName = userData.getStoreNameById(storeId);
+                      final String storeImage = userData.getStoreImageById(storeId);
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8.0),
+                            child: Image.network(
+                              storeImage,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (BuildContext ctx, Object error, StackTrace? stackTrace) {
+                                return Container(
+                                  width: 50,
+                                  height: 50,
+                                  color: Colors.grey[200],
+                                  child: const Icon(Icons.store, size: 30, color: Colors.grey),
+                                );
+                              },
+                            ),
+                          ),
+                          title: Text(storeName, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          trailing: ElevatedButton(
+                            onPressed: () {
+                              userData.followStore(storeId);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('تمت متابعة محل "$storeName" بنجاح!')),
+                              );
+                              Navigator.pop(dialogContext);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              minimumSize: Size.zero,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            ),
+                            child: const Text('متابعة', style: TextStyle(fontSize: 14)),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Notifications Screen for normal user.
+class NotificationsScreen extends StatelessWidget {
+  const NotificationsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: primaryColor,
+        title: const Text('الإشعارات', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+        actions: <Widget>[
+          Consumer<NormalUserData>(
+            builder: (BuildContext context, NormalUserData userData, Widget? child) {
+              if (userData.notifications.isNotEmpty) {
+                return IconButton(
+                  icon: const Icon(Icons.clear_all, color: Colors.white),
+                  tooltip: 'مسح جميع الإشعارات',
+                  onPressed: () {
+                    userData.clearNotifications();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('تم مسح جميع الإشعارات.')),
+                    );
+                  },
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
+      body: Consumer<NormalUserData>(
+        builder: (BuildContext context, NormalUserData userData, Widget? child) {
+          if (userData.notifications.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey),
+                  const SizedBox(height: 10),
+                  Text(
+                    'لا توجد إشعارات حاليًا.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(8.0),
+            itemCount: userData.notifications.length,
+            itemBuilder: (BuildContext context, int index) {
+              final String notification = userData.notifications[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                elevation: 3,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const Icon(Icons.info_outline, color: primaryColor, size: 28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          notification,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(fontSize: 16, color: Colors.black87),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
